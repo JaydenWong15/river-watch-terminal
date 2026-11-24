@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 const root = new URL('../', import.meta.url);
 const html = await readFile(new URL('index.html', root), 'utf8');
 const logic = html.split('// ==== LOGIC START ====')[1].split('// ==== LOGIC END ====')[0];
-const L = new Function(logic + '; return { readSheet, computePlan, studyAnswer, headlineFor, countiesFor, crewLimitsFromNotes, parseCSV, forecastPeak, dublinDate };')();
+const L = new Function(logic + '; return { readSheet, computePlan, studyAnswer, headlineFor, countiesFor, crewLimitsFromNotes, parseCSV, forecastPeak, dublinDate, parseWhatIf, buildData, buildRequestBody, trimHistory, readAnswer, ANSWER_SCHEMA };')();
 const towns = JSON.parse(await readFile(new URL('data/towns.json', root), 'utf8')).towns;
 const summary = JSON.parse(await readFile(new URL('data/history-summary.json', root), 'utf8'));
 const P = Object.fromEntries(summary.towns.map(t => [t.town, t]));
@@ -166,6 +166,79 @@ test('Area Manager: most events, trend, limit', () => {
 test('Dublin date for "today"', () => {
   assert.equal(L.dublinDate(new Date('2026-07-01T23:30:00Z')), '2026-07-02'); // IST
   assert.equal(L.dublinDate(new Date('2026-11-24T23:30:00Z')), '2026-11-24'); // GMT
+});
+
+// ---- AI layer ----
+const LIVE = { status: { sheet: { ok: true, at: NOW.toISOString() }, forecast: { ok: true, at: NOW.toISOString() }, warnings: { ok: true, at: NOW.toISOString() } }, warnings: [], warningsOk: true, sheet: { problems: [] } };
+
+test('what-if parsing: town, river, ambiguous river, follow-up', () => {
+  assert.deepEqual(L.parseWhatIf('What if the Suir at Clonmel reaches 150 m³/s?').towns, ['Clonmel']);
+  assert.deepEqual(L.parseWhatIf('what if the Suir hits 150 cumecs').towns, ['Clonmel']);
+  assert.equal(L.parseWhatIf('What if the Shannon reaches 200 m3/s?').towns.length, 0);
+  assert.match(L.parseWhatIf('What if the Shannon reaches 200 m3/s?').ambiguous, /Athlone and Carrick-on-Shannon/);
+  assert.deepEqual(L.parseWhatIf('and 250 m3/s?', ['Clonmel']).towns, ['Clonmel']);
+  assert.deepEqual(L.parseWhatIf('What if Ennis gets 9 m3/s').towns, ['Ennis']);
+  assert.deepEqual(L.parseWhatIf('What if Enniscorthy gets 60 m3/s').towns, ['Enniscorthy']);
+  assert.deepEqual(L.parseWhatIf('What if the Bandon river hits 50 m3/s').towns, ['Bandon']);
+  assert.equal(L.parseWhatIf('Why is Fermoy at that level?'), null);
+});
+
+const ctx = (question, history = [], prev = []) => {
+  const { rows } = L.readSheet(csv());
+  const base = { rows, towns, summary, forecasts: fc(), warnings: [], now: NOW };
+  const plan = L.computePlan(base);
+  const wi = L.parseWhatIf(question, prev);
+  const whatIfPlan = wi?.whatIf ? L.computePlan({ ...base, whatIf: wi.whatIf }) : null;
+  const data = L.buildData({ plan, whatIfPlan, whatIfInfo: wi, summary, live: { ...LIVE, sheet: { problems: [] } }, nowIso: NOW.toISOString() });
+  return { wi, data, body: L.buildRequestBody({ question, history, data }) };
+};
+
+test('request: DATA in system, messages are plain dialogue only', () => {
+  const history = [{ role: 'user', content: 'What is tonight\'s plan?' }, { role: 'assistant', content: 'All eight towns are Normal tonight.' }];
+  const { body } = ctx('Why is Fermoy at that level?', history);
+  assert.equal(body.model, 'claude-haiku-5-5'); assert.equal(body.max_tokens, 16000);
+  assert.equal(body.output_config.effort, 'low'); assert.equal(body.output_config.format.type, 'json_schema');
+  assert.match(body.system, /DATA \(fresh for this question\)/); assert.match(body.system, /"town": "Fermoy"/);
+  assert.equal(body.messages[0].role, 'user'); assert.equal(body.messages.at(-1).content, 'Why is Fermoy at that level?');
+  for (const m of body.messages) { assert.equal(typeof m.content, 'string'); assert.doesNotMatch(m.content, /[{}]|DATA|"town"/); }
+});
+
+test('request: the what-if plan is computed in code and sent', () => {
+  const { data } = ctx('What if the Suir at Clonmel reaches 150 m³/s?');
+  assert.match(data.whatIf.question, /Clonmel at 150/);
+  const c = data.whatIf.plan.towns.find(t => t.town === 'Clonmel');
+  assert.match(c.peakFlow, /150\.0 m³\/s \(what-if value\)/);
+  assert.equal(c.recommendation, 150 >= P.Clonmel.p99 ? 'Barriers' : 'Standby');
+  assert.ok(data.whatIf.changes.some(s => /Clonmel: Normal →/.test(s)));
+});
+
+test('follow-up: "and 200 m3/s?" reuses the last what-if town', () => {
+  const { wi, data } = ctx('And at 200 m3/s?', [], ['Clonmel']);
+  assert.deepEqual(wi.towns, ['Clonmel']); assert.match(data.whatIf.question, /Clonmel at 200/);
+});
+
+test('DATA readable: no raw booleans/nulls, notes labelled untrusted, study included', () => {
+  const { body } = ctx('Which town should be first in line for a flood-defence study?');
+  const sys = body.system.split('DATA (fresh for this question):')[1];
+  assert.doesNotMatch(sys, /: (true|false|null)\b/);
+  assert.match(sys, /teamSheetNotes_untrustedText/);
+  assert.match(sys, /"firstInLine": "Mallow"/);
+});
+
+test('history trimmed by whole pairs and always starts with a user turn', () => {
+  const h = Array.from({ length: 16 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'm' + i }));
+  const t = L.trimHistory(h);
+  assert.equal(t.length, 12); assert.equal(t[0].role, 'user'); assert.equal(t[0].content, 'm4');
+  assert.equal(L.trimHistory([{ role: 'assistant', content: 'x' }, { role: 'user', content: 'y' }])[0].role, 'user');
+});
+
+test('readAnswer: refusal, cut-off, empty, thinking blocks skipped, JSON parsed, facts capped', () => {
+  assert.match(L.readAnswer({ stop_reason: 'refusal', content: [] }).error, /declined/);
+  assert.match(L.readAnswer({ stop_reason: 'max_tokens', content: [] }).error, /cut off/);
+  assert.match(L.readAnswer({ stop_reason: 'end_turn', content: [{ type: 'thinking', thinking: '' }] }).error, /empty/);
+  const a = { headline: 'All Normal', answer: 'Every town is Normal.', verdict: 'normal', facts: [1, 2, 3, 4].map(i => ({ label: 'L' + i, value: 'V' })), sources: ['Sheet'], usedRehearsalOrWhatIf: false };
+  const r = L.readAnswer({ stop_reason: 'end_turn', content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: JSON.stringify(a) }] });
+  assert.equal(r.answer.headline, 'All Normal'); assert.equal(r.answer.facts.length, 3);
 });
 
 console.log(`\n${n} tests passed`);
