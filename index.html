@@ -23,9 +23,7 @@ a{color:var(--accent)}
 .bg img:nth-child(2){animation-delay:9s}.bg img:nth-child(3){animation-delay:18s}
 @keyframes slide{0%{opacity:0;transform:scale(1.08)}6%{opacity:1}33%{opacity:1}40%{opacity:0;transform:scale(1.0)}100%{opacity:0}}
 .bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,11,22,.55) 0%,rgba(6,11,22,.82) 45%,rgba(6,11,22,.96) 100%)}
-.rain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.28;background-image:linear-gradient(transparent 0 86%,rgba(170,205,255,.4) 86% 100%);background-size:2px 110px;animation:rain .55s linear infinite;mask-image:linear-gradient(180deg,#000,transparent 75%)}
-@keyframes rain{to{background-position:-14px 110px}}
-@media (prefers-reduced-motion:reduce){.bg img{animation:none}.bg img:first-child{opacity:1}.rain{display:none}}
+@media (prefers-reduced-motion:reduce){.bg img{animation:none}.bg img:first-child{opacity:1}}
 .wrap{position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:0 16px}
 nav{position:sticky;top:0;z-index:5;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);background:rgba(6,11,22,.6);border-bottom:1px solid var(--line)}
 nav .wrap{display:flex;align-items:center;gap:14px;height:54px}
@@ -185,7 +183,6 @@ footer a{color:var(--muted)}
 <div class="bg" aria-hidden="true">
   <img src="assets/bewdley-barriers.jpg" alt=""><img src="assets/clonmel-suir.jpg" alt="" loading="lazy"><img src="assets/fermoy-weir.jpg" alt="" loading="lazy">
 </div>
-<div class="rain" aria-hidden="true"></div>
 
 <nav><div class="wrap">
   <div class="brand"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4cc3ff" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M2 9c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><path d="M2 15c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/></svg>River Watch</div>
