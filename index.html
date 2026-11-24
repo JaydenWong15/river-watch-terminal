@@ -103,7 +103,7 @@ section{padding:30px 0;position:relative;z-index:2}
 .tile{border-radius:14px;padding:12px;background:var(--glass);border:1px solid var(--line)}
 .tile .v{font:750 26px var(--mono)}.tile .l{font-size:12px;color:var(--muted)}
 .towns{display:grid;gap:8px;margin-top:14px}
-.town{border-radius:14px;border:1px solid var(--line);border-left:5px solid;animation:reveal .5s ease-out both}
+.town{border-radius:14px;border:1px solid var(--line);border-left:5px solid}
 .town .row{display:grid;grid-template-columns:170px 150px 1fr auto;gap:12px;align-items:center;padding:12px 14px}
 .town.lB{background:linear-gradient(90deg,rgba(255,91,91,.16),var(--glass) 40%);border-left-color:var(--barriers)}
 .town.lS{background:linear-gradient(90deg,rgba(242,181,58,.14),var(--glass) 40%);border-left-color:var(--standby)}
@@ -844,10 +844,10 @@ function renderPlan(plan, live) {
     ${normals.length ? `<li><span class="sym" style="color:var(--normal)">■</span><b>${normals.length === 8 ? 'All 8 towns' : normals.length + ' town' + (normals.length > 1 ? 's' : '')}</b><span>Normal. Nothing to do.</span></li>` : ''}
     ${unknown.length ? `<li><span class="sym" style="color:var(--none)">?</span><b>${esc(listJoin(unknown))}</b><span>Data missing. Check by hand.</span></li>` : ''}
   </ul></div>`;
-  const row = (t, i) => {
+  const row = t => {
     const lc = t.action === null || t.action === undefined ? 'lU' : 'l' + LV[t.action];
     const tags = (t.rehearsal.length ? ' <span class="tag">REHEARSAL</span>' : '') + (t.caveat ? ` <span class="cav" title="${esc(t.caveat)}">data caveat</span>` : '');
-    return `<details class="town ${lc}" style="animation-delay:${i * 50}ms"><summary class="row">
+    return `<details class="town ${lc}"><summary class="row">
       <div class="nm"><b>${esc(t.town)}</b><span>River ${esc(t.river)}</span></div>
       <div class="lv">${lvlChip(t.action)}${tags}</div>
       <div class="why">${townLine(t)}${townSub(t) ? `<small>${esc(townSub(t))}</small>` : ''}${t.warnings.length ? `<div>${warnChips(t)}</div>` : ''}</div>
