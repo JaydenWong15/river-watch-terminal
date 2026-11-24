@@ -1,4 +1,4 @@
-name = "river-watch-proxy"
+name = "river-watch-terminal-proxy"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
 
