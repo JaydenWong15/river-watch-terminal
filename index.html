@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>River Watch</title>
+<meta name="description" content="Tonight's flood call for eight Irish towns, checked against the Flood Plan.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234cc3ff' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M2 9c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0'/%3E%3Cpath d='M2 15c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#070d1a; --bg2:#0b1426; --surface:#0f1a30; --surface2:#14223d; --border:#22324f;
+  --text:#e7eef9; --muted:#8ea2c0; --faint:#6f83a6;
+  --accent:#4cc3ff; --accent-ink:#04121f;
+  --normal:#3ccf91; --standby:#f2b53a; --barriers:#ff5b5b; --rehearsal:#b58cff;
+  --radius:14px;
+  --font: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono: ui-monospace,"Cascadia Mono","Consolas",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:radial-gradient(1200px 600px at 70% -10%,#13284a 0%,transparent 60%),linear-gradient(180deg,var(--bg2),var(--bg));
+  background-color:var(--bg);background-attachment:fixed;color:var(--text);font:15px/1.5 var(--font);min-height:100vh;overflow-x:hidden}
+.rain{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+  background-image:linear-gradient(transparent 0 85%,rgba(140,190,255,.35) 85% 100%);
+  background-size:2px 90px;animation:rain .7s linear infinite;mask-image:linear-gradient(180deg,#000,transparent 70%)}
+@keyframes rain{to{background-position:0 90px}}
+@media (prefers-reduced-motion:reduce){.rain{animation:none;display:none}}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;padding:8px 0 18px}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#1c3f70,#0e2142);display:grid;place-items:center;border:1px solid var(--border);flex:none}
+h1{font-size:24px;margin:0;letter-spacing:.3px}
+.tag{color:var(--muted);font-size:13px;margin:0}
+.asof{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
+.asof b{color:var(--text)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint);margin-right:6px}
+.dot.ok{background:var(--normal);box-shadow:0 0 8px var(--normal)}
+.dot.err{background:var(--barriers)}
+details.sec{background:rgba(15,26,48,.86);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+details.sec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px 16px;font-weight:650}
+details.sec>summary::-webkit-details-marker{display:none}
+.num{font-family:var(--mono);color:var(--accent-ink);background:var(--accent);width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:13px;flex:none}
+.chip{margin-left:auto;font-size:12px;font-weight:600;color:var(--muted);border:1px solid var(--border);padding:2px 9px;border-radius:99px;white-space:nowrap}
+.chip:empty{display:none}
+.chev{color:var(--faint);transition:transform .2s}
+.chip:empty + .chev{margin-left:auto}
+details[open] .chev{transform:rotate(90deg)}
+.body{padding:0 16px 16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);padding:9px 14px}
+button:disabled{opacity:.55;cursor:wait}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:700}
+button.ok{border-color:var(--normal);color:var(--normal)}
+button.no{border-color:var(--barriers);color:var(--barriers)}
+button.link{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;font-size:12.5px}
+button:focus-visible,summary:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px}
+.verdict{border-left:4px solid var(--accent)}
+.verdict.lv2{border-left-color:var(--barriers)} .verdict.lv1{border-left-color:var(--standby)} .verdict.lv0{border-left-color:var(--normal)}
+.headline{font-size:18px;font-weight:700;margin:0 0 4px}
+.muted{color:var(--muted)} .small{font-size:12.5px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:12px}
+.tile{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.tile .v{font-size:22px;font-weight:750;font-family:var(--mono)}
+.tile .l{font-size:12px;color:var(--muted)}
+.lvl{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:12px;letter-spacing:.4px;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.lvl::before{content:"";width:8px;height:8px;border-radius:2px;background:currentColor}
+.N{color:var(--normal);background:rgba(60,207,145,.12)}
+.S{color:var(--standby);background:rgba(242,181,58,.13)}
+.B{color:var(--barriers);background:rgba(255,91,91,.14)}
+.U{color:var(--muted);background:rgba(142,162,192,.12)}
+.B::before{border-radius:50%}
+.S::before{transform:rotate(45deg)}
+.flagline{display:flex;gap:8px;align-items:flex-start;background:rgba(255,91,91,.08);border:1px solid rgba(255,91,91,.35);border-radius:10px;padding:10px;margin-top:10px;font-size:13.5px}
+.flagline.info{background:rgba(76,195,255,.07);border-color:rgba(76,195,255,.35)}
+.flagline.rehearsal{background:rgba(181,140,255,.08);border-color:rgba(181,140,255,.45)}
+.tablewrap{overflow-x:auto;margin-top:14px;border:1px solid var(--border);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+.wide{min-width:760px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);background:var(--bg2);font-weight:600}
+tr:last-child td{border-bottom:0}
+td.n{font-family:var(--mono);text-align:right;white-space:nowrap}
+.src{font-size:11.5px;color:var(--faint)}
+.warnchip{display:inline-block;font-size:11.5px;padding:2px 7px;border-radius:6px;white-space:nowrap;margin:1px 0}
+.w-yellow{background:rgba(242,214,58,.12);color:#f2d63a}
+.w-orange{background:rgba(255,150,60,.14);color:#ff9a3c}
+.w-red{background:rgba(255,91,91,.14);color:var(--barriers)}
+.tagchip{font-size:11px;padding:1px 6px;border-radius:6px;white-space:nowrap;display:inline-block;margin-top:3px}
+.lowconf{color:var(--rehearsal);border:1px dashed var(--rehearsal)}
+.rehearse{color:#1b0b33;background:var(--rehearsal);font-weight:700}
+.crews{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px}
+.crew{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.crew h4{margin:0 0 6px;font-size:14px}
+.towncards{display:none;gap:10px;margin-top:14px}
+.tcard{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px}
+.tcard .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tcard .nums{display:flex;gap:14px;font-family:var(--mono);font-size:13px;margin:8px 0 4px;flex-wrap:wrap}
+.steps{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}
+.steps li{margin:2px 0}
+.why summary{cursor:pointer;color:var(--muted);font-size:12.5px}
+.chat{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.msg{max-width:85%;padding:10px 13px;border-radius:12px;font-size:14px}
+.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.ai{align-self:flex-start;background:var(--surface2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.ask{display:flex;gap:8px;margin-top:12px}
+.ask input,.ask textarea{flex:1;min-width:0;font:inherit;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 12px}
+.bars{display:grid;gap:8px;margin-top:12px;position:relative}
+.bar{display:grid;grid-template-columns:150px 1fr 44px;gap:10px;align-items:center;font-size:13.5px;padding:2px 0;border-radius:6px}
+.bar:hover,.bar:focus{background:rgba(76,195,255,.06);outline:none}
+.bar .t{height:14px;position:relative}
+.bar .f{height:100%;background:var(--accent);border-radius:0 4px 4px 0;min-width:2px}
+.bar .c{font-family:var(--mono);text-align:right}
+.bar.top span:first-child{font-weight:700}
+.tip{position:absolute;pointer-events:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;z-index:5;display:none;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:260px}
+.err{color:var(--barriers)}
+footer{color:var(--muted);font-size:12.5px;text-align:center;padding:22px 0 30px}
+footer .ai-line{color:var(--text);font-weight:600;font-size:13.5px;margin-bottom:6px}
+footer a{color:var(--muted)}
+.skeleton{height:12px;border-radius:6px;background:linear-gradient(90deg,var(--surface2),#1b2c4d,var(--surface2));background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.skeleton{animation:none}}
+@media (max-width:640px){
+  h1{font-size:20px} .asof{text-align:left}
+  .bar{grid-template-columns:110px 1fr 32px}
+  .msg{max-width:94%}
+  details.sec>summary .chip{display:none}
+  details.sec>summary .chev{margin-left:auto}
+  #planTableWrap{display:none}
+  .towncards{display:grid}
+}
+</style>
+</head>
+<body>
+<div class="rain" aria-hidden="true"></div>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4cc3ff" stroke-width="2" stroke-linecap="round"><path d="M2 9c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><path d="M2 15c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/></svg>
+      </div>
+      <div>
+        <h1>River Watch</h1>
+        <p class="tag">Tonight's flood call for eight towns, checked against the Flood Plan.</p>
+      </div>
+    </div>
+    <div class="asof" id="asof"><span class="dot"></span>Not loaded yet<br>Sheet · Open-Meteo · Met Éireann</div>
+  </header>
+
+  <details class="sec" id="plan" open>
+    <summary><span class="num">1</span>Tonight's plan<span class="chip" id="planChip"></span><span class="chev">▶</span></summary>
+    <div class="body">
+      <div class="row"><button class="primary" id="btnPlan">Get tonight's plan</button><span class="small muted">Reads the Sheet, river forecasts and warnings now.</span></div>
+      <div id="planOut"></div>
+    </div>
+  </details>
+
+  <details class="sec" id="ask">
+    <summary><span class="num">2</span>Ask River Watch<span class="chip" id="askChip"></span><span class="chev">▶</span></summary>
+    <div class="body" id="askBody">
+      <p class="muted small">Chat is added in the next build phase.</p>
+    </div>
+  </details>
+
+  <details class="sec" id="study">
+    <summary><span class="num">3</span>Flood-defence study<span class="chip" id="studyChip"></span><span class="chev">▶</span></summary>
+    <div class="body" id="studyOut"><div class="skeleton"></div></div>
+  </details>
+
+  <details class="sec" id="sources">
+    <summary><span class="num">4</span>Towns &amp; sources<span class="chip" id="srcChip"></span><span class="chev">▶</span></summary>
+    <div class="body" id="srcOut"><div class="skeleton"></div></div>
+  </details>
+
+  <details class="sec" id="log">
+    <summary><span class="num">5</span>Decision log<span class="chip" id="logChip"></span><span class="chev">▶</span></summary>
+    <div class="body" id="logOut"></div>
+  </details>
+
+  <footer>
+    <div class="ai-line">AI can make mistakes; a person makes the final decision.</div>
+    <div>Flood Plan 2026/27. Not covered: coastal and tidal flooding, road closures, insurance, or any individual home. Ask the council's area office about these.</div>
+    <div style="margin-top:6px">Data: <a href="https://open-meteo.com/en/docs/flood-api" target="_blank" rel="noopener">Open-Meteo Flood API</a> (CC BY 4.0) · <a href="https://www.met.ie/warnings" target="_blank" rel="noopener">Met Éireann warnings</a> (CC BY 4.0, text unaltered) · <a href="https://waterlevel.ie" target="_blank" rel="noopener">OPW waterlevel.ie</a> gauge locations (CC BY 4.0)</div>
+  </footer>
+</div>
+
+<script>
+// ==== LOGIC START ====
+const SHEET_ID = '12CiRhBo4mzXUYQYlo0aGulFVFeWYK2hRB5bzGvN5Qjo';
+const SHEET_TAB = 'team';
+const SHEET_COLUMNS = ['town','county','river','crew_based_here','barrier_sets','pumps','sandbags','staff_on_call','flow_override_m3s','warning_override','notes'];
+const COUNTY_FIPS = { Carlow:'EI01', Cavan:'EI02', Clare:'EI03', Cork:'EI04', Donegal:'EI06', Dublin:'EI07', Galway:'EI10', Kerry:'EI11', Kildare:'EI12', Kilkenny:'EI13', Leitrim:'EI14', Laois:'EI15', Limerick:'EI16', Longford:'EI18', Louth:'EI19', Mayo:'EI20', Meath:'EI21', Monaghan:'EI22', Offaly:'EI23', Roscommon:'EI24', Sligo:'EI25', Tipperary:'EI26', Waterford:'EI27', Westmeath:'EI29', Wexford:'EI30', Wicklow:'EI31' };
+const CREWS = [
+  { name: 'Clonmel', area: ['Clonmel', 'Fermoy', 'Enniscorthy'] },
+  { name: 'Mallow',  area: ['Mallow', 'Fermoy', 'Bandon'] },
+  { name: 'Athlone', area: ['Athlone', 'Carrick-on-Shannon', 'Ennis'] }
+];
+const CREW_PLACES = 2;
+const LEVELS = ['Normal', 'Standby', 'Barriers'];
+const DAY_MS = 86400000;
+
+function parseCSV(text) {
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (c === '"') q = false;
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell); rows.push(row); row = []; cell = '';
+    } else cell += c;
+  }
+  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(v => v.trim() !== ''));
+}
+
+const normTown = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+function readSheet(csvText) {
+  const grid = parseCSV(csvText);
+  const problems = [];
+  if (!grid.length) return { rows: [], problems: ['The Sheet is empty.'] };
+  const header = grid[0].map(h => h.trim().toLowerCase());
+  const missing = SHEET_COLUMNS.filter(c => !header.includes(c));
+  if (missing.length) problems.push(`Sheet is missing column(s): ${missing.join(', ')}.`);
+  const col = name => header.indexOf(name);
+  const num = (raw, field, town) => {
+    const s = String(raw ?? '').trim();
+    if (s === '') return null;
+    const v = Number(s.replace(/,/g, ''));
+    if (!Number.isFinite(v)) { problems.push(`${town}: ${field} "${s}" is not a number, so it was ignored.`); return null; }
+    return v;
+  };
+  const rows = grid.slice(1).map(r => {
+    const get = name => (col(name) >= 0 ? (r[col(name)] ?? '').trim() : '');
+    const town = get('town');
+    const w = get('warning_override').toLowerCase();
+    if (w && !['orange', 'red', 'yellow'].includes(w)) problems.push(`${town}: warning_override "${get('warning_override')}" is not orange, red or yellow, so it was ignored.`);
+    return {
+      town, county: get('county'), river: get('river'),
+      crewBasedHere: get('crew_based_here').toLowerCase() === 'yes',
+      barrierSets: num(get('barrier_sets'), 'barrier_sets', town),
+      pumps: num(get('pumps'), 'pumps', town),
+      sandbags: num(get('sandbags'), 'sandbags', town),
+      staffOnCall: num(get('staff_on_call'), 'staff_on_call', town),
+      flowOverride: num(get('flow_override_m3s'), 'flow_override_m3s', town),
+      warningOverride: ['orange', 'red', 'yellow'].includes(w) ? w : '',
+      notes: get('notes')
+    };
+  }).filter(r => r.town);
+  return { rows, problems };
+}
+
+function dublinDate(d) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Dublin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}
+
+function forecastPeak(times, values, todayStr) {
+  const days = [];
+  for (let i = 0; i < times.length && days.length < 3; i++) {
+    if (times[i] >= todayStr && values[i] !== null && Number.isFinite(values[i])) days.push({ date: times[i], q: values[i] });
+  }
+  if (!days.length) return null;
+  const top = days.reduce((a, b) => (b.q > a.q ? b : a));
+  return { peak: top.q, date: top.date, days };
+}
+
+function countiesFor(row) {
+  const out = [];
+  const add = name => {
+    const key = Object.keys(COUNTY_FIPS).find(k => k.toLowerCase() === String(name).trim().toLowerCase());
+    if (key && !out.some(c => c.name === key)) out.push({ name: key, code: COUNTY_FIPS[key], from: out.length ? 'notes' : 'county' });
+  };
+  add(row.county);
+  for (const name of Object.keys(COUNTY_FIPS)) {
+    if (new RegExp(`\\b${name}\\b`, 'i').test(row.notes || '')) add(name);
+  }
+  return out;
+}
+
+const isRain = w => /rain/i.test(w.type || '') || /\brain/i.test(w.headline || '');
+
+function warningsFor(warnings, counties, now) {
+  const horizon = new Date(now.getTime() + 2 * DAY_MS);
+  const codes = counties.map(c => c.code);
+  return (warnings || [])
+    .filter(w => {
+      const onset = new Date(w.onset), expiry = new Date(w.expiry);
+      return (isNaN(onset) || onset <= horizon) && (isNaN(expiry) || expiry >= now);
+    })
+    .map(w => ({ ...w, level: String(w.level || '').toLowerCase(), hit: counties.filter(c => (w.regions || []).includes(c.code)).map(c => c.name) }))
+    .filter(w => w.hit.length)
+    .map(w => ({ ...w, raises: isRain(w) && (w.level === 'orange' || w.level === 'red') && w.status !== 'Advisory' }));
+}
+
+const BARRIER_BLOCK = /barrier[^.]*?\b(on loan|loaned|unavailable|not available|damaged|broken|missing|out of service|in repair|being repaired)\b/i;
+
+function crewLimitsFromNotes(rows) {
+  const limits = {};
+  for (const r of rows) {
+    const n = r.notes || '';
+    for (const c of CREWS) {
+      const only = new RegExp(`\\b${c.name} crew\\b[^.]*?\\bwork (?:in|at) ([A-Za-z][A-Za-z -]*?) only\\b`, 'i').exec(n);
+      if (only) limits[c.name] = { onlyTowns: [only[1].trim()], note: n, from: r.town };
+      if (new RegExp(`\\b${c.name} crew\\b[^.]*?\\b(unavailable|not available|off duty|stood down|cannot work|can't work)\\b`, 'i').test(n) && !only)
+        limits[c.name] = { unavailable: true, note: n, from: r.town };
+    }
+  }
+  return limits;
+}
+
+function assignCrews(rankedTowns, crews) {
+  const solve = list => {
+    const load = {}, res = {};
+    const bt = i => {
+      if (i === list.length) return true;
+      const t = list[i];
+      const opts = crews.filter(c => c.area.includes(t)).sort((a, b) => (b.name === t) - (a.name === t));
+      for (const c of opts) {
+        if ((load[c.name] || 0) < c.places) {
+          load[c.name] = (load[c.name] || 0) + 1; res[t] = c.name;
+          if (bt(i + 1)) return true;
+          load[c.name]--; delete res[t];
+        }
+      }
+      return false;
+    };
+    return bt(0) ? { ...res } : null;
+  };
+  let chosen = [], assignment = {};
+  for (const t of rankedTowns) {
+    const r = solve([...chosen, t]);
+    if (r) { chosen.push(t); assignment = r; }
+  }
+  return assignment;
+}
+
+const fmtQ = v => (v === null || v === undefined || !Number.isFinite(v)) ? '–' : (v >= 10 ? v.toFixed(1) : v.toFixed(2));
+const fmtPct = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1) + '%';
+
+function computePlan({ rows, towns, summary, forecasts, warnings, now, whatIf = {} }) {
+  const today = dublinDate(now);
+  const sumBy = Object.fromEntries((summary?.towns || []).map(t => [normTown(t.town), t]));
+  const cfgBy = Object.fromEntries((towns || []).map(t => [normTown(t.town), t]));
+  const crewLimits = crewLimitsFromNotes(rows);
+  const flags = [];
+  const result = rows.map(r => {
+    const key = normTown(r.town);
+    const cfg = cfgBy[key], hist = sumBy[key];
+    const t = { town: r.town, river: r.river, county: r.county, row: r, steps: [], flags: [], rehearsal: [], warnings: [], caveat: cfg?.caveat || null };
+    t.counties = countiesFor(r);
+    if (!cfg || !hist) {
+      t.level = null; t.action = null;
+      t.flags.push(`No river point or history is set up for "${r.town}", so River Watch can't advise. Decide manually.`);
+      return t;
+    }
+    if (cfg.river && r.river && normTown(cfg.river) !== normTown(r.river))
+      t.flags.push(`The Sheet names the ${r.river} for ${r.town}, but the forecast point is on the ${cfg.river}. Check the river before relying on this.`);
+    t.p95 = hist.p95; t.p99 = hist.p99;
+
+    const fc = forecasts?.[cfg.town];
+    t.forecast = fc ? forecastPeak(fc.time, fc.q, today) : null;
+    if (whatIf[cfg.town] !== undefined) {
+      t.peak = whatIf[cfg.town]; t.peakSource = 'whatif';
+      t.steps.push(`What-if value: ${fmtQ(t.peak)} m³/s used in place of the forecast peak.`);
+    } else if (r.flowOverride !== null) {
+      t.peak = r.flowOverride; t.peakSource = 'rehearsal';
+      t.rehearsal.push(`flow_override_m3s = ${fmtQ(r.flowOverride)}`);
+      t.steps.push(`Rehearsal value from the Sheet: ${fmtQ(t.peak)} m³/s (flow_override_m3s) used in place of the forecast peak.`);
+    } else if (t.forecast) {
+      t.peak = t.forecast.peak; t.peakDate = t.forecast.date; t.peakSource = 'forecast';
+      t.steps.push(`Forecast peak ${fmtQ(t.peak)} m³/s on ${t.forecast.date} (highest of ${t.forecast.days.map(d => fmtQ(d.q)).join(', ')} for today and the next two days).`);
+    } else {
+      t.level = null; t.action = null;
+      t.flags.push(`No forecast came back for ${r.town}. Check the river manually.`);
+      return t;
+    }
+    t.pctOverP99 = (t.peak - t.p99) / t.p99 * 100;
+    const base = t.peak >= t.p99 ? 2 : t.peak >= t.p95 ? 1 : 0;
+    t.baseLevel = base;
+    t.steps.push(`${fmtQ(t.peak)} against the 95th (${fmtQ(t.p95)}) and 99th (${fmtQ(t.p99)}) percentiles → ${LEVELS[base]}.`);
+
+    t.warnings = warningsFor(warnings, t.counties, now).map(w => ({ ...w, source: 'live' }));
+    if (r.warningOverride) {
+      t.warnings.push({ level: r.warningOverride, type: 'Rain', headline: `Rehearsal ${r.warningOverride} warning (warning_override)`, hit: [r.county], source: 'rehearsal', raises: r.warningOverride !== 'yellow' });
+      t.rehearsal.push(`warning_override = ${r.warningOverride}`);
+    }
+    const raiser = t.warnings.find(w => w.raises);
+    let level = base;
+    if (raiser) {
+      level = Math.min(2, base + 1);
+      t.steps.push(`${cap(raiser.level)} ${raiser.source === 'rehearsal' ? 'rehearsal' : 'rain'} warning for ${raiser.hit.join(' and ')} in force within 48 hours → raised one level to ${LEVELS[level]}.`);
+    }
+    for (const w of t.warnings.filter(w => !w.raises)) t.steps.push(`${cap(w.level)} ${w.type || ''} warning for ${w.hit.join(' and ')} noted; it doesn't change the level.`.replace(/\s+/g, ' '));
+    if (t.counties.length > 1) t.steps.push(`Warnings checked for ${t.counties.map(c => c.name).join(' and ')} (second county from the notes).`);
+    t.level = level;
+
+    const blockedByNote = BARRIER_BLOCK.test(r.notes || '');
+    t.barrierAvailable = (r.barrierSets ?? 0) > 0 && !blockedByNote;
+    if (!t.barrierAvailable) t.barrierWhy = (r.barrierSets ?? 0) <= 0 ? 'barrier_sets is 0' : `notes say "${r.notes}"`;
+    return t;
+  });
+
+  // Crews
+  const crews = CREWS.map(c => {
+    const baseRow = rows.find(r => normTown(r.town) === normTown(c.name));
+    const lim = crewLimits[c.name];
+    let area = c.area.slice(), places = CREW_PLACES, status = 'available', note = null;
+    if (baseRow && !baseRow.crewBasedHere) { places = 0; status = 'unavailable'; note = `crew_based_here is not "yes" for ${c.name}`; }
+    if (lim?.unavailable) { places = 0; status = 'unavailable'; note = lim.note; }
+    if (lim?.onlyTowns) { area = area.filter(t => lim.onlyTowns.some(o => normTown(o) === normTown(t))); status = 'restricted'; note = lim.note; }
+    return { name: c.name, area, fullArea: c.area, places, status, note };
+  });
+
+  const barrierTowns = result.filter(t => t.level === 2);
+  for (const t of barrierTowns) {
+    if (!t.barrierAvailable) {
+      t.action = 1;
+      t.flags.push(`At Barriers level but no barrier set is available (${t.barrierWhy}). It gets every Standby measure instead (Plan rule 7).`);
+      t.steps.push(`No barrier set available (${t.barrierWhy}) → Standby measures and flagged to the Area Manager (rule 7).`);
+    }
+  }
+  const candidates = barrierTowns.filter(t => t.barrierAvailable)
+    .sort((a, b) => (Math.abs(b.pctOverP99 - a.pctOverP99) > 1e-9 ? b.pctOverP99 - a.pctOverP99 : b.peak - a.peak));
+  candidates.forEach((t, i) => { t.rank = i + 1; });
+  const assignment = assignCrews(candidates.map(t => t.town), crews);
+  for (const t of candidates) {
+    if (assignment[t.town]) {
+      t.action = 2; t.crew = assignment[t.town];
+      t.steps.push(`Barriers: ${t.crew} crew to erect them before 18:00${candidates.length > 1 ? ` (priority ${t.rank} of ${candidates.length}, ${fmtPct(t.pctOverP99)} vs 99th)` : ''}.`);
+    } else {
+      t.action = 1;
+      const could = crews.filter(c => c.fullArea.includes(t.town)).map(c => c.name);
+      t.flags.push(`At Barriers level but no crew place is left (${could.join(' or ')} crew${could.length > 1 ? 's' : ''} full or restricted). It gets every Standby measure instead (Plan rule 6).`);
+      t.steps.push(`No crew place left → Standby measures and flagged to the Area Manager (rule 6).`);
+    }
+  }
+  for (const t of result) {
+    if (t.level === 0 || t.level === 1) t.action = t.level;
+    if (t.action === 1) t.standbyMeasures = `Confirm ${t.row.staffOnCall ?? '?'} staff on call, check ${t.row.pumps ?? '?'} pumps, stage ${t.row.sandbags ?? '?'} sandbags.`;
+    if (t.flags.length) flags.push(...t.flags.map(f => ({ town: t.town, text: f })));
+  }
+  crews.forEach(c => { c.towns = candidates.filter(t => t.crew === c.name).map(t => t.town); });
+
+  const count = lv => result.filter(t => t.action === lv).length;
+  const rehearsal = result.filter(t => t.rehearsal.length).map(t => ({ town: t.town, items: t.rehearsal }));
+  return {
+    date: today, now: now.toISOString(), towns: result, crews, flags, rehearsal,
+    counts: { barriers: count(2), standby: count(1), normal: count(0), unknown: result.filter(t => t.action === null || t.action === undefined).length },
+    whatIf: Object.keys(whatIf).length ? whatIf : null
+  };
+}
+
+function headlineFor(plan) {
+  const b = plan.towns.filter(t => t.action === 2).map(t => t.town);
+  const s = plan.counts.standby;
+  if (!b.length && !s) return 'All eight towns Normal tonight';
+  const parts = [];
+  if (b.length) parts.push(`Barriers at ${listJoin(b)}`);
+  if (s) parts.push(`standby in ${s === 1 ? plan.towns.find(t => t.action === 1).town : s + ' towns'}`);
+  const h = parts.join(', ');
+  return h[0].toUpperCase() + h.slice(1);
+}
+
+function studyAnswer(summary) {
+  const towns = [...summary.towns].sort((a, b) => b.eventsTotal - a.eventsTotal || a.town.localeCompare(b.town));
+  const max = towns[0].eventsTotal;
+  const leaders = towns.filter(t => t.eventsTotal === max);
+  return {
+    towns, leaders, max,
+    trend: leaders.map(t => ({ town: t.town, first4: t.first4, last4: t.last4, rising: t.last4 > t.first4 })),
+    limit: 'This count can\'t tell the Area Manager how long each event lasted, what damage it did, or what defences are already in place. A single long flood counts the same as a one-day spike.'
+  };
+}
+
+const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+const listJoin = a => a.length <= 1 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' and ' + a.at(-1);
+// ==== LOGIC END ====
+
+// ---------- page ----------
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const lvlClass = ['N', 'S', 'B'];
+const lvlChip = lv => lv === null || lv === undefined ? '<span class="lvl U">NO ADVICE</span>' : `<span class="lvl ${lvlClass[lv]}">${LEVELS[lv].toUpperCase()}</span>`;
+const fmtTime = iso => new Intl.DateTimeFormat('en-IE', { timeZone: 'Europe/Dublin', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+const fmtDay = ymd => new Intl.DateTimeFormat('en-IE', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(ymd + 'T12:00:00Z'));
+const fmtWhen = iso => new Intl.DateTimeFormat('en-IE', { timeZone: 'Europe/Dublin', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+
+const state = { towns: null, summary: null, live: null, plan: null };
+
+async function loadStatic() {
+  if (state.towns) return;
+  const [t, s] = await Promise.all([
+    fetch('data/towns.json').then(r => r.json()),
+    fetch('data/history-summary.json').then(r => r.json())
+  ]);
+  state.towns = t.towns; state.summary = s;
+}
+
+async function fetchLive() {
+  const stamp = Date.now();
+  const pts = state.towns;
+  const meteoUrl = 'https://flood-api.open-meteo.com/v1/flood?latitude=' + pts.map(t => t.point.lat).join(',') +
+    '&longitude=' + pts.map(t => t.point.lon).join(',') + '&daily=river_discharge&forecast_days=4&timezone=GMT';
+  const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_TAB}&t=${stamp}`;
+  const warnUrl = `https://www.met.ie/Open_Data/json/warning_IRELAND.json?t=${stamp}`;
+  const status = {};
+  const grab = async (key, url, kind) => {
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const body = kind === 'json' ? await r.json() : await r.text();
+      if (body && body.error) throw new Error(body.reason || 'error');
+      status[key] = { ok: true, at: new Date().toISOString(), url };
+      return body;
+    } catch (e) { status[key] = { ok: false, at: new Date().toISOString(), url, error: e.message }; return null; }
+  };
+  const [sheetText, meteo, warnings] = await Promise.all([
+    grab('sheet', sheetUrl, 'text'), grab('forecast', meteoUrl, 'json'), grab('warnings', warnUrl, 'json')
+  ]);
+  const forecasts = {};
+  if (meteo) {
+    const arr = Array.isArray(meteo) ? meteo : [meteo];
+    arr.forEach((r, i) => { forecasts[pts[i].town] = { time: r.daily.time, q: r.daily.river_discharge, cell: { lat: r.latitude, lon: r.longitude } }; });
+  }
+  const sheet = sheetText ? readSheet(sheetText) : { rows: [], problems: ['Could not read the Sheet.'] };
+  return { sheet, forecasts, warnings: warnings || [], warningsOk: !!warnings, status, fetchedAt: new Date().toISOString() };
+}
+
+function renderAsof(live) {
+  const s = live.status;
+  const allOk = s.sheet?.ok && s.forecast?.ok && s.warnings?.ok;
+  const part = (k, label) => `<span class="${s[k]?.ok ? '' : 'err'}">${label}${s[k]?.ok ? '' : ' ✕'}</span>`;
+  $('asof').innerHTML = `<span class="dot ${allOk ? 'ok' : 'err'}"></span>${allOk ? 'Live' : 'Partly live'} · <b>${fmtWhen(live.fetchedAt)}</b><br>${part('sheet', 'Sheet')} · ${part('forecast', 'Open-Meteo')} · ${part('warnings', 'Met Éireann')}`;
+}
+
+function warnChips(t) {
+  if (!t.warnings?.length) return '<span class="muted">none</span>';
+  return t.warnings.map(w => `<span class="warnchip w-${esc(w.level)}" title="${esc(w.headline || '')}">${w.source === 'rehearsal' ? 'Rehearsal ' : ''}${esc(cap(w.level))} ${esc(w.type || '')} · ${esc(w.hit.join(', '))}</span>`).join('<br>');
+}
+
+function townWhy(t) {
+  if (t.action === null || t.action === undefined) return esc(t.flags[0] || 'No advice.');
+  if (t.action === 2) return `Peak ${t.baseLevel === 2 ? '≥ 99th' : 'raised by warning'}. ${esc(t.crew)} crew assigned.`;
+  if (t.level === 2 && t.action === 1) return 'At Barriers level, but ' + (t.barrierAvailable ? 'no crew place left' : 'no barrier set') + ' → Standby + flag.';
+  if (t.action === 1) return t.baseLevel === 1 ? 'Peak ≥ 95th.' : 'Raised to Standby by a warning.';
+  return 'Peak below 95th.';
+}
+
+function townTags(t) {
+  let h = '';
+  if (t.rehearsal.length) h += ` <span class="tagchip rehearse" title="${esc(t.rehearsal.join('; '))}">REHEARSAL</span>`;
+  if (t.peakSource === 'whatif') h += ' <span class="tagchip rehearse">WHAT-IF</span>';
+  if (t.caveat) h += ` <span class="tagchip lowconf" title="${esc(t.caveat)}">data caveat</span>`;
+  return h;
+}
+
+function peakCell(t) {
+  if (t.peak === undefined) return '–';
+  const sub = t.peakSource === 'forecast' ? fmtDay(t.peakDate) : t.peakSource === 'rehearsal' ? 'Sheet override' : 'what-if';
+  return `${fmtQ(t.peak)} m³/s<div class="src">${sub}</div>`;
+}
+
+function renderPlan(plan, live) {
+  const anyBarriers = plan.counts.barriers > 0, anyStandby = plan.counts.standby > 0;
+  const lv = anyBarriers ? 2 : anyStandby ? 1 : 0;
+  $('planChip').textContent = `${plan.counts.barriers} Barriers · ${plan.counts.standby} Standby · ${plan.flags.length} flag${plan.flags.length === 1 ? '' : 's'}`;
+  let h = '';
+  if (plan.rehearsal.length) h += `<div class="flagline rehearsal"><span>◆</span><span><b>Rehearsal values in use:</b> ${plan.rehearsal.map(r => `${esc(r.town)} (${esc(r.items.join(', '))})`).join('; ')}. This is not the live picture for those towns.</span></div>`;
+  for (const p of live.sheet.problems) h += `<div class="flagline"><span>!</span><span>${esc(p)}</span></div>`;
+  if (!live.warningsOk) h += `<div class="flagline"><span>!</span><span>Met Éireann warnings could not be read, so no warning has been applied. Check met.ie/warnings before deciding.</span></div>`;
+  h += `<div class="card verdict lv${lv}"><p class="headline">${esc(headlineFor(plan))}</p>
+    <p class="muted" style="margin:0" id="planExplain">${esc(planSummaryText(plan))}</p>
+    <div class="tiles">
+      <div class="tile"><div class="v" style="color:var(--barriers)">${plan.counts.barriers}</div><div class="l">Barriers</div></div>
+      <div class="tile"><div class="v" style="color:var(--standby)">${plan.counts.standby}</div><div class="l">Standby</div></div>
+      <div class="tile"><div class="v" style="color:var(--normal)">${plan.counts.normal}</div><div class="l">Normal</div></div>
+      <div class="tile"><div class="v">${plan.flags.length}</div><div class="l">Area Manager flags</div></div>
+    </div>
+    ${plan.flags.map(f => `<div class="flagline"><span>⚑</span><span><b>${esc(f.town)}:</b> ${esc(f.text)}</span></div>`).join('')}
+  </div>`;
+
+  h += `<div class="tablewrap" id="planTableWrap"><table class="wide"><thead><tr><th>Town</th><th>Level</th><th>Forecast peak</th><th>95th / 99th</th><th>vs 99th</th><th>Warnings</th><th>Why</th></tr></thead><tbody>` +
+    plan.towns.map(t => `<tr><td><b>${esc(t.town)}</b><div class="src">${esc(t.river)}</div></td>
+      <td>${lvlChip(t.action)}${townTags(t)}</td>
+      <td class="n">${peakCell(t)}</td>
+      <td class="n">${fmtQ(t.p95)} / ${fmtQ(t.p99)}</td>
+      <td class="n">${t.pctOverP99 !== undefined ? fmtPct(t.pctOverP99) : '–'}</td>
+      <td>${warnChips(t)}</td>
+      <td>${townWhy(t)}${t.standbyMeasures ? `<div class="src">${esc(t.standbyMeasures)}</div>` : ''}
+        <details class="why"><summary>Show working</summary><ol class="steps">${t.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details></td></tr>`).join('') +
+    `</tbody></table></div>`;
+
+  h += `<div class="towncards">` + plan.towns.map(t => `<div class="tcard"><div class="top"><span><b>${esc(t.town)}</b> <span class="src">${esc(t.river)}</span></span>${lvlChip(t.action)}</div>
+      <div>${townTags(t)}</div>
+      <div class="nums"><span>Peak ${t.peak !== undefined ? fmtQ(t.peak) : '–'}</span><span>95th ${fmtQ(t.p95)}</span><span>99th ${fmtQ(t.p99)}</span></div>
+      <div class="small">${townWhy(t)}</div>${t.warnings?.length ? `<div style="margin-top:4px">${warnChips(t)}</div>` : ''}
+      ${t.standbyMeasures ? `<div class="src">${esc(t.standbyMeasures)}</div>` : ''}
+      <details class="why"><summary>Show working</summary><ol class="steps">${t.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details></div>`).join('') + `</div>`;
+
+  const s = live.status;
+  h += `<p class="src">Forecast: Open-Meteo Flood API (GloFAS), fetched ${s.forecast?.ok ? fmtTime(s.forecast.at) : 'FAILED'}. Thresholds: daily flow 2016–2025 at the same point. Warnings: Met Éireann, fetched ${s.warnings?.ok ? fmtTime(s.warnings.at) : 'FAILED'} (${live.warnings.length} active nationally). Sheet read ${s.sheet?.ok ? fmtTime(s.sheet.at) : 'FAILED'}.</p>`;
+
+  h += `<h3 style="margin:18px 0 0;font-size:15px">Crews</h3><div class="crews">` + plan.crews.map(c => `<div class="crew"><h4>${esc(c.name)} crew</h4>
+      ${c.towns.length ? c.towns.map(t => `<div>→ <b>${esc(t)}</b> (barriers by 18:00)</div>`).join('') : `<div class="muted">No barrier towns${c.status === 'restricted' ? ' it can reach' : ''}.</div>`}
+      ${c.status !== 'available' ? `<div class="src">${c.status === 'unavailable' ? 'Unavailable' : 'Restricted to ' + esc(c.area.join(', ') || 'nowhere')}: ${esc(c.note)}</div>` : ''}
+      <div class="src">${c.towns.length} of ${c.places} places used · area: ${esc(c.fullArea.join(', '))}</div></div>`).join('') + `</div>`;
+
+  h += `<div class="card"><div class="row" style="justify-content:space-between">
+      <span><b>Duty Officer decision</b> <span class="small muted">River Watch recommends. You decide.</span></span>
+      <span class="row"><button class="ok" data-decide="Approved">✓ Approve plan</button><button class="no" data-decide="Rejected">✕ Reject</button></span></div>
+      <div class="ask"><input id="reason" placeholder="Reason (recorded in the decision log)" aria-label="Reason"></div></div>`;
+  $('planOut').innerHTML = h;
+  $('planOut').querySelectorAll('[data-decide]').forEach(b => b.addEventListener('click', () => decide(b.dataset.decide)));
+}
+
+function planSummaryText(plan) {
+  const parts = [];
+  for (const t of plan.towns.filter(t => t.action === 2)) parts.push(`${t.town}: peak ${fmtQ(t.peak)} m³/s (${fmtPct(t.pctOverP99)} vs its 99th), ${t.crew} crew to erect barriers before 18:00.`);
+  for (const f of plan.flags) parts.push(`${f.town} is flagged to the Area Manager.`);
+  if (!parts.length) parts.push(plan.counts.standby ? 'No town needs barriers tonight. Standby towns: confirm staff, check pumps, stage sandbags.' : 'Every forecast peak is below its town\'s 95th percentile and no orange or red rain warning applies.');
+  return parts.join(' ');
+}
+
+async function getPlan() {
+  const btn = $('btnPlan');
+  btn.disabled = true; btn.textContent = 'Reading live data…';
+  try {
+    await loadStatic();
+    const live = await fetchLive();
+    state.live = live;
+    renderAsof(live);
+    if (!live.sheet.rows.length) { $('planOut').innerHTML = `<div class="flagline"><span>!</span><span>The team Sheet could not be read, so there is no plan. ${esc(live.sheet.problems.join(' '))}</span></div>`; return; }
+    state.plan = computePlan({ rows: live.sheet.rows, towns: state.towns, summary: state.summary, forecasts: live.forecasts, warnings: live.warnings, now: new Date() });
+    renderPlan(state.plan, live);
+    renderSources();
+  } catch (e) {
+    $('planOut').innerHTML = `<div class="flagline"><span>!</span><span>Something went wrong reading the data: ${esc(e.message)}. Try again in a minute.</span></div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Get tonight\'s plan';
+  }
+}
+
+// ---------- study ----------
+function renderStudy() {
+  const a = studyAnswer(state.summary);
+  const lead = a.leaders.map(l => l.town);
+  const tr = a.trend.map(x => `${x.town}'s last four winters had ${x.last4} event${x.last4 === 1 ? '' : 's'} against ${x.first4} in its first four (${x.rising ? 'more' : x.last4 === x.first4 ? 'the same' : 'fewer'}).`).join(' ');
+  $('studyChip').textContent = `First in line: ${lead.join(' & ')}`;
+  const max = a.max || 1;
+  $('studyOut').innerHTML = `<div class="card verdict"><p class="headline">${esc(listJoin(lead))} had the most high-flow events</p>
+    <p class="muted" style="margin:0">${a.max} runs of days at or above ${lead.length > 1 ? 'their' : 'its'} 99th percentile across winters 2016/17–2024/25 (1 Oct–31 Mar). ${esc(tr)}</p>
+    <div class="flagline info"><span>ⓘ</span><span><b>What this count can't tell you:</b> ${esc(a.limit)}</span></div></div>
+    <p class="small" style="margin:16px 0 0"><b>High-flow events per town, winters 2016/17–2024/25</b></p>
+    <div class="bars" id="bars" role="list">${a.towns.map(t => `<div class="bar${lead.includes(t.town) ? ' top' : ''}" role="listitem" tabindex="0" data-town="${esc(t.town)}" aria-label="${esc(t.town)}: ${t.eventsTotal} events, first four winters ${t.first4}, last four ${t.last4}">
+      <span>${esc(t.town)}</span><div class="t"><div class="f" style="width:${(t.eventsTotal / max * 100).toFixed(1)}%"></div></div><span class="c">${t.eventsTotal}</span></div>`).join('')}<div class="tip" id="tip"></div></div>
+    <details class="why" style="margin-top:12px"><summary>Show as a table</summary>
+      <div class="tablewrap"><table><thead><tr><th>Town</th><th>Events</th><th>First 4 winters</th><th>Last 4 winters</th><th>99th (m³/s)</th>${state.summary.winters.map(w => `<th>${esc(w)}</th>`).join('')}</tr></thead><tbody>
+      ${a.towns.map(t => `<tr><td>${esc(t.town)}</td><td class="n">${t.eventsTotal}</td><td class="n">${t.first4}</td><td class="n">${t.last4}</td><td class="n">${fmtQ(t.p99)}</td>${state.summary.winters.map(w => `<td class="n">${t.winterEvents[w]}</td>`).join('')}</tr>`).join('')}
+      </tbody></table></div></details>
+    <p class="src">Event = a run of consecutive days at or above the town's own 99th percentile, 1 Oct–31 Mar. First four winters 2016/17–2019/20, last four 2021/22–2024/25; 2020/21 counts in the total only. Source: ${esc(state.summary.source)}, ${esc(state.summary.period)}, computed once and stored.</p>`;
+  const tip = $('tip'), bars = $('bars');
+  const show = el => {
+    const t = a.towns.find(x => x.town === el.dataset.town);
+    tip.innerHTML = `<b>${esc(t.town)}</b> · ${esc(t.river)}<br>${t.eventsTotal} events · first four ${t.first4} · last four ${t.last4}<br><span class="src">99th percentile ${fmtQ(t.p99)} m³/s</span>`;
+    tip.style.display = 'block';
+    tip.style.top = (el.offsetTop + el.offsetHeight + 4) + 'px';
+    tip.style.left = Math.min(el.offsetLeft + 150, bars.clientWidth - 270) + 'px';
+  };
+  bars.querySelectorAll('.bar').forEach(el => {
+    el.addEventListener('mouseenter', () => show(el)); el.addEventListener('focus', () => show(el));
+    el.addEventListener('mouseleave', () => { tip.style.display = 'none'; }); el.addEventListener('blur', () => { tip.style.display = 'none'; });
+  });
+}
+
+// ---------- sources ----------
+function renderSources() {
+  const caveats = state.towns.filter(t => t.caveat).length;
+  $('srcChip').textContent = `${caveats} data caveat${caveats === 1 ? '' : 's'}`;
+  const sumBy = Object.fromEntries(state.summary.towns.map(t => [t.town, t]));
+  const kmBetween = (a, b) => { const R = 6371, r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r;
+    const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
+  const st = state.live?.status;
+  const live = k => st ? (st[k].ok ? `<span style="color:var(--normal)">● read ${fmtTime(st[k].at)}</span>` : `<span class="err">✕ ${esc(st[k].error)}</span>`) : '<span class="muted">not read yet</span>';
+  $('srcOut').innerHTML = `<div class="tablewrap"><table class="wide"><thead><tr><th>Town / river</th><th>OPW gauge</th><th>Point used</th><th>Shift</th><th>10-yr mean</th><th>95th / 99th</th><th>Note</th></tr></thead><tbody>
+    ${state.towns.map(t => { const s = sumBy[t.town]; return `<tr><td><b>${esc(t.town)}</b><div class="src">${esc(t.river)}</div></td>
+      <td>${esc(t.gauge.name)}<div class="src">${esc(t.gauge.ref)} · ${t.gauge.lat.toFixed(4)}, ${t.gauge.lon.toFixed(4)}</div></td>
+      <td class="n">${t.point.lat.toFixed(3)}, ${t.point.lon.toFixed(3)}<div class="src">model cell ${s.cell.lat.toFixed(3)}, ${s.cell.lon.toFixed(3)}</div></td>
+      <td class="n">${kmBetween(t.gauge, t.point).toFixed(1)} km</td>
+      <td class="n">${fmtQ(s.mean)} m³/s</td><td class="n">${fmtQ(s.p95)} / ${fmtQ(s.p99)}</td>
+      <td class="small">${t.caveat ? `<span class="tagchip lowconf">caveat</span> ${esc(t.caveat)}` : t.shiftReason ? esc(t.shiftReason) : '<span class="muted">Gauge point used as is.</span>'}</td></tr>`; }).join('')}
+    </tbody></table></div>
+    <div class="tablewrap"><table><thead><tr><th>Source</th><th>Used for</th><th>Licence</th><th>Status</th></tr></thead><tbody>
+      <tr><td>Team Sheet (Google Sheets)</td><td>Resources, notes, rehearsal values. Read on every request.</td><td>Team data</td><td>${live('sheet')}</td></tr>
+      <tr><td>Open-Meteo Flood API, GloFAS v4 (flood-api.open-meteo.com)</td><td>Daily river discharge, today + 2 days</td><td>CC BY 4.0</td><td>${live('forecast')}</td></tr>
+      <tr><td>Met Éireann warnings (met.ie/Open_Data/json/warning_IRELAND.json)</td><td>Orange/red rain warnings by county code (EI01–EI31)</td><td>CC BY 4.0, text unaltered</td><td>${live('warnings')}</td></tr>
+      <tr><td>Open-Meteo Flood API, 2016–2025</td><td>95th/99th percentiles, winter events (stored summary)</td><td>CC BY 4.0</td><td><span class="muted">computed ${esc(state.summary.computedAt.slice(0, 10))}</span></td></tr>
+      <tr><td>OPW waterlevel.ie station list</td><td>Gauge locations on each named river</td><td>CC BY 4.0</td><td><span class="muted">static</span></td></tr>
+    </tbody></table></div>
+    <p class="src">Levels compare each forecast with the same point's own 10-year history, so they stay consistent even where the global model reads low against local gauges.</p>`;
+}
+
+// ---------- decision log ----------
+const LOG_KEY = 'riverwatch.decisions.v1';
+const readLog = () => { try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch { return []; } };
+const writeLog = l => { try { localStorage.setItem(LOG_KEY, JSON.stringify(l)); return true; } catch { return false; } };
+function decide(decision) {
+  if (!state.plan) return;
+  const reason = $('reason').value.trim();
+  if (!reason) { $('reason').focus(); $('reason').placeholder = 'Please give a reason first (Plan rule 1)'; return; }
+  const p = state.plan;
+  const summary = p.towns.map(t => `${t.town} ${t.action === null || t.action === undefined ? '?' : LEVELS[t.action]}${t.crew ? ' (' + t.crew + ' crew)' : ''}`).join('; ');
+  const log = readLog();
+  log.unshift({ at: new Date().toISOString(), decision, reason, plan: summary, rehearsal: p.rehearsal.length > 0 });
+  const saved = writeLog(log);
+  $('reason').value = '';
+  renderLog(saved ? null : 'This browser blocked saving, so the entry is not stored.');
+  $('reason').placeholder = `${decision} at ${fmtTime(new Date().toISOString())}. See section 5, Decision log.`;
+}
+function renderLog(warn) {
+  const log = readLog();
+  $('logChip').textContent = `${log.length} entr${log.length === 1 ? 'y' : 'ies'}`;
+  $('logOut').innerHTML = (warn ? `<div class="flagline"><span>!</span><span>${esc(warn)}</span></div>` : '') +
+    (log.length ? `<div class="tablewrap"><table><thead><tr><th>When</th><th>Decision</th><th>Plan</th><th>Reason</th></tr></thead><tbody>
+    ${log.map(e => `<tr><td class="n">${fmtWhen(e.at)}</td><td><span class="lvl ${e.decision === 'Approved' ? 'N' : 'B'}">${esc(e.decision.toUpperCase())}</span>${e.rehearsal ? ' <span class="tagchip rehearse">REHEARSAL</span>' : ''}</td><td class="small">${esc(e.plan)}</td><td>${esc(e.reason)}</td></tr>`).join('')}
+    </tbody></table></div><div class="row" style="margin-top:10px"><button class="link" id="logCsv">Download as CSV</button></div>` : '<p class="muted small">No decisions recorded yet. Approve or reject tonight\'s plan in section 1.</p>') +
+    '<p class="src">Saved in this browser only. Download the CSV to keep a copy for the team record.</p>';
+  $('logCsv')?.addEventListener('click', () => {
+    const rows = [['when', 'decision', 'plan', 'reason', 'rehearsal'], ...log.map(e => [e.at, e.decision, e.plan, e.reason, e.rehearsal ? 'yes' : 'no'])];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'river-watch-decisions.csv'; a.click();
+  });
+}
+
+// ---------- boot ----------
+$('btnPlan').addEventListener('click', getPlan);
+document.querySelectorAll('details.sec').forEach(d => d.addEventListener('toggle', () => {
+  if (d.open) document.querySelectorAll('details.sec').forEach(o => { if (o !== d) o.open = false; });
+}));
+function openFromHash() { const d = document.getElementById(location.hash.slice(1)); if (d && d.tagName === 'DETAILS') d.open = true; }
+window.addEventListener('hashchange', openFromHash);
+openFromHash();
+renderLog();
+loadStatic().then(() => { renderStudy(); renderSources(); getPlan(); })
+  .catch(e => { $('studyOut').innerHTML = `<p class="err">Could not load the stored history: ${esc(e.message)}</p>`; });
+</script>
+</body>
+</html>
