@@ -232,13 +232,20 @@ test('history trimmed by whole pairs and always starts with a user turn', () => 
   assert.equal(L.trimHistory([{ role: 'assistant', content: 'x' }, { role: 'user', content: 'y' }])[0].role, 'user');
 });
 
-test('readAnswer: refusal, cut-off, empty, thinking blocks skipped, JSON parsed, facts capped', () => {
+test('readAnswer: refusal, cut-off, empty, thinking blocks skipped, JSON parsed, towns cleaned', () => {
   assert.match(L.readAnswer({ stop_reason: 'refusal', content: [] }).error, /declined/);
   assert.match(L.readAnswer({ stop_reason: 'max_tokens', content: [] }).error, /cut off/);
   assert.match(L.readAnswer({ stop_reason: 'end_turn', content: [{ type: 'thinking', thinking: '' }] }).error, /empty/);
-  const a = { headline: 'All Normal', answer: 'Every town is Normal.', verdict: 'normal', facts: [1, 2, 3, 4].map(i => ({ label: 'L' + i, value: 'V' })), sources: ['Sheet'], usedRehearsalOrWhatIf: false };
+  const a = { headline: 'All Normal', answer: 'Every town is Normal.', verdict: 'normal', towns: ['Fermoy', 'Atlantis', 'Ennis', 'Mallow', 'Bandon'], visual: 'town', sources: ['Sheet'], usedRehearsalOrWhatIf: false };
   const r = L.readAnswer({ stop_reason: 'end_turn', content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: JSON.stringify(a) }] });
-  assert.equal(r.answer.headline, 'All Normal'); assert.equal(r.answer.facts.length, 3);
+  assert.equal(r.answer.headline, 'All Normal'); assert.deepEqual(r.answer.towns, ['Fermoy', 'Ennis', 'Mallow']);
+  assert.deepEqual(L.ANSWER_SCHEMA.required.sort(), ['answer', 'headline', 'sources', 'towns', 'usedRehearsalOrWhatIf', 'verdict', 'visual']);
+});
+
+test('plain words: thresholds named watch line / flood line in what the AI sees', () => {
+  const { body } = ctx('Why is Fermoy at that level?');
+  assert.match(body.system, /watch line 77\.9 m³\/s \(95th percentile\), flood line 129\.5 m³\/s/);
+  assert.match(body.system, /15-year-old/);
 });
 
 console.log(`\n${n} tests passed`);
