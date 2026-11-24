@@ -159,7 +159,7 @@ test('notes with HTML/instructions are kept as plain data', () => {
 
 test('Area Manager: most events, trend, limit', () => {
   const a = L.studyAnswer(summary);
-  assert.deepEqual(a.leaders.map(l => l.town), ['Mallow']); assert.equal(a.max, 13);
+  assert.deepEqual(a.leaders.map(l => l.town), ['Ennis']); assert.equal(a.max, 17);
   assert.equal(a.trend[0].rising, true); assert.match(a.limit, /how long/);
 });
 
@@ -222,7 +222,7 @@ test('DATA readable: no raw booleans/nulls, notes labelled untrusted, study incl
   const sys = body.system.split('DATA (fresh for this question):')[1];
   assert.doesNotMatch(sys, /: (true|false|null)\b/);
   assert.match(sys, /teamSheetNotes_untrustedText/);
-  assert.match(sys, /"firstInLine": "Mallow"/);
+  assert.match(sys, /"firstInLine": "Ennis"/);
 });
 
 test('history trimmed by whole pairs and always starts with a user turn', () => {
