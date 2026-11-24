@@ -160,6 +160,11 @@ section{padding:30px 0;position:relative;z-index:2}
 .srcc b{display:block;margin-bottom:2px}
 .more{margin-top:14px;padding:4px 14px}
 .more>summary{cursor:pointer;padding:10px 0;color:var(--muted)}
+.subh{font-size:14px;margin:18px 0 8px}
+.rules{margin:0 0 12px;padding-left:20px;font-size:13.5px;color:var(--muted)}
+.rules li{margin:3px 0}
+.wlist{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px}
+.wlist li{padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04)}
 .tablewrap{overflow-x:auto;border-radius:12px}
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase}
 td.n{font-family:var(--mono);white-space:nowrap}
@@ -239,7 +244,22 @@ footer a{color:var(--muted)}
         <div class="mapinfo" id="mapInfo">Tap a town.</div>
       </div>
     </div>
-    <details class="glass more" id="pointsBox"><summary>ⓘ Where the data comes from</summary><div class="srcs" id="srcCards"></div><div id="pointsOut"></div></details>
+    <details class="glass more" id="pointsBox"><summary>ⓘ Where every number comes from</summary>
+      <div class="srcs" id="srcCards"></div>
+      <h3 class="subh">Ten-year summary (one row per town)</h3><div id="pointsOut"></div>
+      <h3 class="subh">Warnings in the Met Éireann feed now</h3><div id="warnOut"><p class="muted small">Read when you get the plan or ask a question.</p></div>
+      <h3 class="subh">The rules used (Flood Plan 2026/27)</h3>
+      <ol class="rules">
+        <li>The Duty Officer decides by 16:00. River Watch only suggests.</li>
+        <li>Peak = the highest daily flow for today and the next 2 days, at the town's own river point.</li>
+        <li>Below the watch line (95th percentile) → Normal. At or above it → Standby: staff on call, pumps checked, sandbags staged. At or above the flood line (99th) → Barriers, up before 18:00.</li>
+        <li>An orange or red rain warning for the town's county in the next 48 hours moves it up one level. Yellow changes nothing. Athlone and Carrick-on-Shannon also count Roscommon.</li>
+        <li>Rehearsal values in the Sheet replace the forecast or the warning, and are always labelled.</li>
+        <li>Three crews (Clonmel, Mallow, Athlone), at most two towns each, own area only. If places run out, the town furthest over its flood line (in %) goes first.</li>
+        <li>No barrier set, or no crew place → Standby measures and a flag to the Area Manager.</li>
+        <li>Not covered: coastal or tidal floods, roads, insurance, single homes.</li>
+      </ol>
+    </details>
   </section>
 
   <section id="log">
@@ -860,7 +880,7 @@ function renderPlan(plan, live) {
   h += `<div class="crews">` + plan.crews.map(c => `<div class="glass crew"><b>${esc(c.name)} crew</b>
       ${c.towns.length ? c.towns.map(t => `<div>→ ${esc(t)}</div>`).join('') : `<div class="muted"${c.note ? ` title="${esc(c.note)}"` : ''}>${c.status === 'unavailable' ? 'Not available' : c.status === 'restricted' ? `${esc(c.area.join(', ') || 'Base')} only tonight` : 'Free'}</div>`}
       <div class="src">${c.towns.length} of ${c.places} places used</div></div>`).join('') + `</div>`;
-  h += `<div class="glass decide"><b>Your decision</b><input id="reason" placeholder="Why? (saved in the log)" aria-label="Reason"><button class="ghost ok" data-decide="Approved">✓ Approve</button><button class="ghost no" data-decide="Rejected">✕ Reject</button></div>`;
+  h += `<div class="glass decide"><span><b>Your decision</b><br><span class="small muted">River Watch suggests. You decide by 16:00.</span></span><input id="reason" placeholder="Why? (saved in the log)" aria-label="Reason"><button class="ghost ok" data-decide="Approved">✓ Approve</button><button class="ghost no" data-decide="Rejected">✕ Reject</button></div>`;
   $('planOut').innerHTML = `<div class="reveal">${h}</div>`;
   $('planOut').querySelectorAll('[data-decide]').forEach(b => b.addEventListener('click', () => decide(b.dataset.decide)));
 }
@@ -910,11 +930,20 @@ function renderSources() {
     <div class="glass srcc"><b>Team Sheet + 10-year history</b>Crews, barriers, notes; river 2016–2025<div class="src">${live('sheet')}</div></div>`;
   const sumBy = Object.fromEntries(state.summary.towns.map(t => [t.town, t]));
   const km = (a, b) => { const R = 6371, r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r; const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
-  $('pointsOut').innerHTML = `<div class="tablewrap"><table class="wide"><thead><tr><th>Town / river</th><th>OPW gauge</th><th>Point used</th><th>Moved</th><th>10-yr average</th><th>Watch / flood line</th><th>Note</th></tr></thead><tbody>
+  $('pointsOut').innerHTML = `<div class="tablewrap"><table class="wide"><thead><tr><th>Town / river</th><th>OPW gauge</th><th>Point used</th><th>Moved</th><th>10-yr average</th><th>Watch / flood line</th><th>Winter floods (first 4 → last 4)</th><th>Note</th></tr></thead><tbody>
     ${state.towns.map(t => { const s = sumBy[t.town]; return `<tr><td><b>${esc(t.town)}</b><div class="src">${esc(t.river)}</div></td><td>${esc(t.gauge.name)}<div class="src">${esc(t.gauge.ref)}</div></td>
-      <td class="n">${t.point.lat.toFixed(3)}, ${t.point.lon.toFixed(3)}</td><td class="n">${km(t.gauge, t.point).toFixed(1)} km</td><td class="n">${fmtQ(s.mean)} m³/s</td><td class="n">${fmtQ(s.p95)} / ${fmtQ(s.p99)}</td>
+      <td class="n">${t.point.lat.toFixed(3)}, ${t.point.lon.toFixed(3)}</td><td class="n">${km(t.gauge, t.point).toFixed(1)} km</td><td class="n">${fmtQ(s.mean)} m³/s</td><td class="n">${fmtQ(s.p95)} / ${fmtQ(s.p99)}</td><td class="n">${s.eventsTotal} (${s.first4} → ${s.last4})</td>
       <td class="small">${t.caveat ? `<span class="cav">caveat</span> ${esc(t.caveat)}` : t.shiftReason ? esc(t.shiftReason) : '<span class="muted">Gauge point used as is.</span>'}</td></tr>`; }).join('')}
-  </tbody></table></div><p class="src">Each town's forecast and its watch/flood lines come from the same model point, so levels stay consistent even where the global model reads lower than local gauges.</p>`;
+  </tbody></table></div><p class="src">Daily flow 1 Jan 2016 – 31 Dec 2025, 3,653 days per town, computed once and stored (<a href="data/history-summary.json" target="_blank" rel="noopener">history-summary.json</a>). Each town's forecast and its lines come from the same model point, so levels stay consistent even where the global model reads lower than local gauges.</p>`;
+  if (state.live) {
+    const name = Object.fromEntries(Object.entries(COUNTY_FIPS).map(([n, c]) => [c, n]));
+    const ws = state.live.warningsOk ? state.live.warnings : null;
+    $('warnOut').innerHTML = ws === null ? '<p class="err small">The Met Éireann feed could not be read. No warning was applied.</p>'
+      : !ws.length ? `<p class="small muted">None at ${fmtTime(state.live.status.warnings.at)}. Nothing raises any town.</p>`
+      : `<ul class="wlist">${ws.map(w => { const counties = (w.regions || []).map(c => name[c]).filter(Boolean); const lv = String(w.level || '').toLowerCase();
+          return `<li><span class="warn w-${esc(lv)}">${esc(cap(lv))} ${esc(w.type || '')}</span> ${esc(w.headline || '')}<div class="src">${counties.length ? esc(counties.join(', ')) : 'Sea areas only'} · ${w.onset ? esc(fmtWhen(w.onset)) : '?'} to ${w.expiry ? esc(fmtWhen(w.expiry)) : '?'}</div></li>`; }).join('')}</ul>
+         <p class="src">Read ${fmtTime(state.live.status.warnings.at)}. Only orange or red rain warnings for a town's county raise its level.</p>`;
+  }
 }
 
 // ---------- study ----------
@@ -951,10 +980,11 @@ function decide(decision) {
 }
 function renderLog() {
   const log = readLog();
-  $('logOut').innerHTML = log.length ? `<div class="tablewrap"><table><thead><tr><th>When</th><th>Decision</th><th>Plan</th><th>Reason</th></tr></thead><tbody>
+  const today = dublinDate(new Date()), nToday = log.filter(e => dublinDate(new Date(e.at)) === today).length;
+  $('logOut').innerHTML = `<p class="small muted" style="margin:2px 4px 8px">Decisions today: <b>${nToday}</b> · kept in this browser only.</p>` + (log.length ? `<div class="tablewrap"><table><thead><tr><th>When</th><th>Decision</th><th>Plan</th><th>Reason</th></tr></thead><tbody>
     ${log.map(e => `<tr><td class="n">${fmtWhen(e.at)}</td><td><span class="lvl ${e.decision === 'Approved' ? 'N' : 'B'}">${esc(e.decision.toUpperCase())}</span>${e.rehearsal ? ' <span class="tag">REHEARSAL</span>' : ''}</td><td class="small">${esc(e.plan)}</td><td>${esc(e.reason)}</td></tr>`).join('')}
     </tbody></table></div><div style="margin-top:10px"><button class="link" id="logCsv" type="button">Download as CSV</button></div>`
-    : '<p class="muted small" style="margin:4px">No decisions yet.</p>';
+    : '<p class="muted small" style="margin:4px">No decisions yet.</p>');
   $('logCsv')?.addEventListener('click', () => {
     const rows = [['when', 'decision', 'plan', 'reason', 'rehearsal'], ...log.map(e => [e.at, e.decision, e.plan, e.reason, e.rehearsal ? 'yes' : 'no'])];
     const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
