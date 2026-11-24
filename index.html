@@ -855,6 +855,8 @@ function renderPlan(plan, live) {
   h += `<div class="towns">${busy.map(row).join('')}</div>`;
   if (calm.length) h += `<details class="calm"${busy.length ? '' : ' open'}><summary>${calm.length} town${calm.length > 1 ? 's' : ''} normal: ${esc(calm.map(t => t.town).join(', '))} ▾</summary><div class="towns">${calm.map(row).join('')}</div></details>`;
   h += `<p class="src">ⓘ <b>Watch line</b>: the river is higher than on 95% of days. <b>Flood line</b>: higher than on 99% of days (10 years of data).</p>`;
+  const st = live.status, at = k => st[k]?.ok ? fmtTime(st[k].at) : 'FAILED';
+  h += `<p class="src">Read ${esc(fmtWhen(live.fetchedAt))}: Open-Meteo forecast for today + 2 days (${at('forecast')}) · Met Éireann warnings, ${live.warnings.length} active (${at('warnings')}) · team Sheet (${at('sheet')}) · lines from daily flow 2016–2025.</p>`;
   h += `<div class="crews">` + plan.crews.map(c => `<div class="glass crew"><b>${esc(c.name)} crew</b>
       ${c.towns.length ? c.towns.map(t => `<div>→ ${esc(t)}</div>`).join('') : `<div class="muted"${c.note ? ` title="${esc(c.note)}"` : ''}>${c.status === 'unavailable' ? 'Not available' : c.status === 'restricted' ? `${esc(c.area.join(', ') || 'Base')} only tonight` : 'Free'}</div>`}
       <div class="src">${c.towns.length} of ${c.places} places used</div></div>`).join('') + `</div>`;

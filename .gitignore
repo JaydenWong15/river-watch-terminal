@@ -11,3 +11,6 @@ evidence/
 mockup2.src.html
 mockup2.html
 assets-src/
+*.docx
+*.pdf
+submission/
